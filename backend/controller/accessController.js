@@ -4,6 +4,9 @@ const Idea = require("../model/Idea");
 exports.requestAccess = async (req,res)=>{
     try {
         const ideaId = req.params.ideaId;
+        if (!mongoose.Types.ObjectId.isValid(ideaId)) {
+            return res.status(400).json({ message: "Invalid Idea ID" });
+          }
         
         const existing = await AccessRequest.findOne({
             idea:ideaId,

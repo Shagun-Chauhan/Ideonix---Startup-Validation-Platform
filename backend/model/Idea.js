@@ -30,6 +30,13 @@ const ideaSchema = new mongoose.Schema({
       allowedUsers:[{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User"
+      }],
+      category : {
+        type:String,
+        default : "General"
+      },
+      tags:[{
+        type:String
       }]
 
 },{timestamps:true});
