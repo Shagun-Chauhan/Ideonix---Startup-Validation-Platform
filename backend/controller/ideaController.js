@@ -1,4 +1,30 @@
 const Idea = require("../model/Idea")
+const NDA = require("../model/NDA");
+const mongoose = require("mongoose");
+
+const calculateValidationScore = (idea) => {
+  const upvotes = idea.votes.filter(v => v.voteType === "upvote").length;
+  const downvotes = idea.votes.filter(v => v.voteType === "downvote").length;
+
+  const voteScore = upvotes - downvotes;
+
+  const score =
+    voteScore +
+    idea.commentsCount +
+    idea.views * 0.1;
+
+  let level = "Low Potential";
+
+  if (score > 20) level = "High Potential";
+  else if (score > 10) level = "Medium Potential";
+
+  return {
+    score,
+    level,
+    upvotes,
+    downvotes
+  };
+};
 
 exports.createIdea = async (req,res)=>{
     try {
@@ -94,60 +120,96 @@ exports.getAllIdeas = async (req, res) => {
         .sort({ createdAt : -1});
 
         const total = await Idea.countDocuments(finalQuery);
+
+        const ideasWithScore = ideas.map((idea) => {
+          const result = calculateValidationScore(idea);
+        
+          return {
+            ...idea.toObject(),
+            validationScore: result.score,
+            potential: result.level
+          };
+        });
+        
+        res.json({
+          page,
+          totalPages: Math.ceil(total / limit),
+          totalIdea: total,
+          ideas: ideasWithScore
+        });
       
+      // res.json({
+      //   page,
+      //   totalPages : Math.ceil(total/limit),
+      //   totalIdea : total,
+      //   ideas
+      // });
+  
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  };
+  exports.getIdeaById = async (req, res) => {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: "Invalid Idea ID" });
+      }
+  
+      const idea = await Idea.findById(req.params.id);
+  
+      if (!idea) {
+        return res.status(404).json({ message: "Idea not found" });
+      }
+  
+      const isOwner =
+        req.user && idea.user.toString() === req.user._id.toString();
+  
+      const isAllowed = idea.allowedUsers?.some(
+        (userId) => userId.toString() === req.user?._id?.toString()
+      );
+  
+      if (idea.visibility === "private") {
+        if (!isOwner && !isAllowed) {
+          return res.status(403).json({ message: "Private idea - access denied" });
+        }
+      }
+  
+      if (idea.visibility === "protected") {
+        const hasAcceptedNDA = await NDA.findOne({
+          user: req.user?._id,
+          idea: idea._id
+        });
+  
+        if (!isOwner && !isAllowed && !hasAcceptedNDA) {
+          return res.status(403).json({
+            message: "Please accept NDA to view full idea",
+            requiresNDA: true
+          });
+        }
+      }
+  
+      idea.views += 1;
+      await idea.save();
+  
+      const result = calculateValidationScore(idea);
+  
       res.json({
-        page,
-        totalPages : Math.ceil(total/limit),
-        totalIdea : total,
-        ideas
+        ...idea.toObject(),
+        validationScore: result.score,
+        potential: result.level,
+        upvotes: result.upvotes,
+        downvotes: result.downvotes
       });
   
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
   };
-exports.getIdeaById = async (req,res)=>{
-        try {
-            const idea = await Idea.findById(req.params.id)
-            if(!idea){
-                return res.status(404).json({ message: "Idea not found" });
-            }
-            if (!mongoose.Types.ObjectId.isValid(idea)) {
-                return res.status(400).json({ message: "Invalid Idea ID" });
-              }
-            if (idea.visibility === "private") {
-                const isOwner =
-                  req.user && idea.user.toString() === req.user._id.toString();
-              
-                const isAllowed =
-                  req.user &&
-                  idea.allowedUsers.some(
-                    (userId) => userId.toString() === req.user._id.toString()
-                  );
-              
-                if (!isOwner && !isAllowed) {
-                  return res.status(403).json({ message: "Private idea - access denied" });
-                }
-              }
-            if(idea.visibility==="protected"){
-                const isOwner = idea.user.toString()=== req.user?._id?.toString();
-                const isAllowed = idea.allowedUsers.some(
-                    (userId) => userId.toString() === req.user?._id?.toString()
-                );
-                if(!isOwner && !isAllowed){
-                    return res.status(403).json({ message: "NDA access required" });
-                }
-            }
-            res.json(idea);
-        } catch (error) {
-            return res.status(404).json({ message: "Idea not found" });
-        }
-};
 
 exports.updateIdea = async (req,res)=>{
     try {
         const idea = await Idea.findById(req.params.id);
-        if (!mongoose.Types.ObjectId.isValid(idea)) {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(400).json({ message: "Invalid Idea ID" });
           }
       
@@ -181,7 +243,7 @@ exports.deleteIdea=async (req,res)=>{
     try {
 
         const idea = await Idea.findById(req.params.id);
-          if (!mongoose.Types.ObjectId.isValid(idea)) {
+          if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(400).json({ message: "Invalid Idea ID" });
           }
         if(!idea){
@@ -226,8 +288,15 @@ exports.voteIdea = async (req,res)=>{
 
         await idea.save();
 
-        res.json({message:"Vote Updated",votes : idea.votes})
-        
+        const result = calculateValidationScore(idea);
+
+        res.json({
+          message: "Vote Updated",
+          validationScore: result.score,
+          potential: result.level,
+          upvotes: result.upvotes,
+          downvotes: result.downvotes
+        });        
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

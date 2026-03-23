@@ -8,6 +8,7 @@ const ideaRoutes = require("./routes/ideaRoutes");
 const commentRoutes = require("./routes/commentRoutes");
 const accessRoutes = require("./routes/accessRoutes");
 const bookmarkRoutes = require("./routes/bookmarkRoutes");
+const ndaRoutes = require("./routes/ndaRoutes")
 
 
 const app = express();
@@ -24,6 +25,7 @@ app.use("/api/ideas",ideaRoutes);
 app.use("/api/comments",commentRoutes);
 app.use("/api/access",accessRoutes);
 app.use("/api/bookmarks",bookmarkRoutes);
+app.use("/api/nda",ndaRoutes);
 
 app.listen(port,()=>{
     console.log(`Backend is running on ${port}`);
