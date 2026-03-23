@@ -21,7 +21,24 @@ const ideaSchema = new mongoose.Schema({
             type:String,
             enum : ["upvote","downvote"]
         }
+      }],
+      visibility:{
+        type:String,
+        enum : ["public","private","protected"],
+        default:"public"
+      },
+      allowedUsers:[{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User"
+      }],
+      category : {
+        type:String,
+        default : "General"
+      },
+      tags:[{
+        type:String
       }]
+
 },{timestamps:true});
 
 module.exports = mongoose.model("Idea",ideaSchema);

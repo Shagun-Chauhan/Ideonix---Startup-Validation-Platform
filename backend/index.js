@@ -6,6 +6,8 @@ const port = process.env.PORT || 5000;
 const authRoutes = require("./routes/authRoutes");
 const ideaRoutes = require("./routes/ideaRoutes");
 const commentRoutes = require("./routes/commentRoutes");
+const accessRoutes = require("./routes/accessRoutes");
+const bookmarkRoutes = require("./routes/bookmarkRoutes");
 
 
 const app = express();
@@ -20,6 +22,8 @@ dbConnect();
 app.use("/api/auth",authRoutes);
 app.use("/api/ideas",ideaRoutes);
 app.use("/api/comments",commentRoutes);
+app.use("/api/access",accessRoutes);
+app.use("/api/bookmarks",bookmarkRoutes);
 
 app.listen(port,()=>{
     console.log(`Backend is running on ${port}`);

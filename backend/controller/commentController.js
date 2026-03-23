@@ -3,7 +3,14 @@ const Comments = require("../model/Comments");
 exports.addComment = async (req,res)=>{
     try {
      const {text} = req.body;
-
+    
+     if (!text) {
+        return res.status(400).json({ message: "Comment cannot be empty" });
+      }
+      
+      if (!mongoose.Types.ObjectId.isValid(req.params.ideaId)) {
+        return res.status(400).json({ message: "Invalid Idea ID" });
+      }
     const comment = await Comments.create({
         text,
         user:req.user._id,
@@ -29,6 +36,11 @@ exports.deleteComment = async (req,res)=>{
     try {
         const comment = await Comments.findById(req.params.id);
         
+        if (!mongoose.Types.ObjectId.isValid(comment)) {
+            return res.status(400).json({ message: "Invalid Comment ID" });
+          }
+        
+
         if(!comment){
             return res.status(404).json({ message: "Comment not found" });
         }
