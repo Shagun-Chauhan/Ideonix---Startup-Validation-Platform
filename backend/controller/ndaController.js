@@ -1,4 +1,5 @@
 const NDA = require("../model/NDA");
+const sendNotification = require("../utils/sendNotification");
 
 exports.acceptNDA = async (req,res)=>{
     try {
@@ -18,6 +19,14 @@ exports.acceptNDA = async (req,res)=>{
             user:req.user._id,
             idea:ideaId
         });
+
+        await sendNotification({
+            req,
+            receiverId : idea.user,
+            senderId : req.user.id,
+            type:"nda",
+            message : `${req.user.name} accepted NDA`,
+        })
 
         res.status(201).json({message:"NDA accepted",nda});
         

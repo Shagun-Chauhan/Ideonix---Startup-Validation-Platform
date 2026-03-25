@@ -1,5 +1,6 @@
 const AccessRequest = require("../model/AccessRequest");
 const Idea = require("../model/Idea");
+const sendNotification = require("../utils/sendNotification");
 
 exports.requestAccess = async (req,res)=>{
     try {
@@ -19,6 +20,14 @@ exports.requestAccess = async (req,res)=>{
             idea:ideaId,
             requester:req.user._id
           });
+
+          await sendNotification({
+            req,
+            recieverId : idea.user,
+            senderId : req.user._id,
+            type:"access",
+            message : `${req.user.name} requested access on your idea : ${idea.title}`,
+          })
 
           res.status(201).json(request)
     } catch (error) {

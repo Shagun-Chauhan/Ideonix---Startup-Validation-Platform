@@ -2,6 +2,7 @@
 const mongoose = require("mongoose");
 const Comments = require("../model/Comments");
 const Idea = require("../model/Idea");
+const sendNotification = require("../utils/sendNotification");
 
 exports.addComment = async (req, res) => {
   try {
@@ -28,6 +29,14 @@ exports.addComment = async (req, res) => {
 
     idea.commentsCount += 1;
     await idea.save();
+
+    await sendNotification({
+      req,
+      receiverId : idea.user,
+      senderId : req.user._id,
+      type:"comment",
+      message : `${req.user.name} commented on your idea ${idea.title}`,
+    })
 
     res.status(201).json(comment);
 
